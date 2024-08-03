@@ -6,6 +6,8 @@ prompt4 : .asciiz "The index of the query in the array : "
 prompt5 : .asciiz "Element not found."
 newline : .asciiz "\n"
 
+query: .word 0
+
 .text
 .globl main
 
@@ -41,7 +43,7 @@ main:
     syscall
 
 initialise_loop:
-    bge $t3 $t0 end_init_loop
+    bge $t3 $t0 enter_query
 
     li $v0 5
     syscall
@@ -53,9 +55,22 @@ initialise_loop:
 
     j initialise_loop
 
-end_init_loop:
-    li $v0 10
+enter_query:
+    #prompt to enter query
+    la $a0 prompt3
+    li $v0 4
     syscall
+
+    #reading query
+    li $v0 5
+    syscall
+    move $t0 $v0
+    
+    #storing query in query variable
+    la $t1 query
+    sw $t0 0($t1)
+
+
 
 
 
