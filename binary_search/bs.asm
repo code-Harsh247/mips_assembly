@@ -107,8 +107,95 @@ print_array:
         j print_loop
     
     end_print_loop:
-        li $v0 10
+        j enter_query
+
+enter_query:
+    #prompt to enter query
+    la $a0 prompt3
+    li $v0 4
+    syscall
+
+    #reading query 
+    li $v0 5
+    syscall
+    move $t1 $v0
+
+    #storing query in memory
+    la $t2 query
+    sw $t1 0($t2)
+
+    jal binary_search
+
+    li $t0 -1
+    beq $v1 $t0 print_not_found
+    j found
+
+    print_not_found:
+        li $v0 4
+        la $a0 prompt5
         syscall
+        j end_program
+    
+    found:
+        li $v0 4
+        la $a0 prompt4
+        syscall
+
+        li $v0 4
+        la $a0 newline
+        syscall
+
+        move $a0 $v1
+        li $v0 1
+        syscall
+
+        j end_program
+    
+
+
+binary_search:
+    lw $t0 arr_base # arr base address t0
+    lw $t1 arr_size # arr size         t1
+    lw $t2 query    # query            t2
+    li $t3 0        # l                t3
+    addi $t4 $t1 -1 # r                t4
+    li $t5 -1       # ans              t5
+
+    while_loop: 
+        bgt $t3 $t4 end_while_loop
+        add $t6 $t4 $t3 # l+r          t6
+        srl $t7, $t6, 1 #(l+r)/2
+        
+        sll $t6, $t7, 2      # mid * 4
+        add $t6 $t6 $t0      
+        lw $t8 0($t6)        # arr[mid]     $t8
+
+        beq $t8 $t2 return_mid #if(arr[mid] == query)
+        blt $t8 $t2 go_right   #if(arr[mid] < query)
+
+        go_left:
+            addi $t4 $t7 -1
+            j while_loop
+
+        go_right:
+            addi $t3 $t7 1
+            j while_loop
+
+        return_mid:
+            move $t5 $t7
+            j end_while_loop
+
+    end_while_loop:
+        move $v1 $t5
+        jr $ra
+
+
+end_program:
+    li $v0 10
+    syscall
+
+
+    
 
 
 
