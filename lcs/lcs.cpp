@@ -1,39 +1,57 @@
 #include <bits/stdc++.h>
+
 using namespace std;
 
-#define INF 1000000000
-#define MOD 1000000007
+void lcs(string s1, string s2) {
 
-typedef long long ll;
+  int n = s1.size();
+  int m = s2.size();
 
-typedef vector<ll> vll;
+  vector < vector < int >> dp(n + 1, vector < int > (m + 1, 0));
+  for (int i = 0; i <= n; i++) {
+    dp[i][0] = 0;
+  }
+  for (int i = 0; i <= m; i++) {
+    dp[0][i] = 0;
+  }
 
-string lcs(string &s1, string &s2, int i, int j)
-{
-    if (i < 0 || j < 0)
-        return "";
-    if (s1[i] == s2[j])
-        return lcs(s1, s2, i - 1, j - 1) + s1[i];
-    else
-    {
-        string shift1 = lcs(s1, s2, i - 1, j);
-        string shift2 = lcs(s1, s2, i, j - 1);
-        if (shift1.size() > shift2.size())
-        {
-            return shift1;
-        }
-        else
-            return shift2;
+  for (int ind1 = 1; ind1 <= n; ind1++) {
+    for (int ind2 = 1; ind2 <= m; ind2++) {
+      if (s1[ind1 - 1] == s2[ind2 - 1])
+        dp[ind1][ind2] = 1 + dp[ind1 - 1][ind2 - 1];
+      else
+        dp[ind1][ind2] = 0 + max(dp[ind1 - 1][ind2], dp[ind1][ind2 - 1]);
     }
+  }
+
+  int len = dp[n][m];
+  int i = n;
+  int j = m;
+
+  int index = len - 1;
+  string str = "";
+  for (int k = 1; k <= len; k++) {
+    str += "$"; // dummy string
+  }
+
+  while (i > 0 && j > 0) {
+    if (s1[i - 1] == s2[j - 1]) {
+      str[index] = s1[i - 1];
+      index--;
+      i--;
+      j--;
+    } else if (s1[i - 1] > s2[j - 1]) {
+      i--;
+    } else j--;
+  }
+  cout << str;
 }
 
-int main()
-{
-    string s1, s2;
-    cin >> s1 >> s2;
-    int n1 = s1.size();
-    int n2 = s2.size();
-    vector<string>
-    cout << "The longest common substring is : " << lcs(s1, s2, n1 - 1, n2 - 1) << endl;
-    return 0;
+int main() {
+
+  string s1 = "abcde";
+  string s2 = "bdgek";
+
+  cout << "The Longest Common Subsequence is ";
+  lcs(s1, s2);
 }
