@@ -99,6 +99,10 @@ print_array:
     end_print_loop:
         lw $t0, arr_size
         li $t1, 0
+        # Newline
+        la $a0, newline
+        li $v0, 4
+        syscall
         j bubble_sort
 
 bubble_sort:
