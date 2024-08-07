@@ -1,186 +1,226 @@
 .data
-    prompt_rows: .asciiz "Enter number of rows: "
-    prompt_cols: .asciiz "Enter number of columns: "
-    prompt_a: .asciiz "Enter value of a: "
-    prompt_b: .asciiz "Enter value of b: "
-    prompt_wait: .asciiz "Please wait a few seconds."
-    space: .asciiz " "
-    newline: .asciiz "\n"
-    original_matrix_msg: .asciiz "Original Matrix:\n"
-    transpose_matrix_msg: .asciiz "\nTranspose Matrix:\n"
-    matrix: .word 0:100  # Assuming max 10x10 matrix (adjust if needed)
-    transpose: .word 0:100  # For storing the transpose
+prompt_row: .asciiz "Enter number of rows : "
+prompt_col: .asciiz "Enter number of cols : "
+
+original_prompt: .asciiz "The original matrix is : \n"
+transpose_prompt: .asciiz "The transpose matrix is : \n"
+
+newline: .asciiz "\n"
+space: .asciiz " "
+
+mat_base: .word 0
+res_base: .word 0
+
+row_count: .word 0
+col_count: .word 0
 
 .text
 .globl main
-
 main:
-    # Get number of rows
+    # Print prompt for number of rows
     li $v0, 4
-    la $a0, prompt_rows
+    la $a0, prompt_row
     syscall
+
+    # Read number of rows
     li $v0, 5
     syscall
-    move $s0, $v0  # $s0 = rows
+    sw $v0, row_count
 
-    # Get number of columns
+    # Print prompt for number of cols
     li $v0, 4
-    la $a0, prompt_cols
+    la $a0, prompt_col
     syscall
+
+    # Read number of cols
     li $v0, 5
     syscall
-    move $s1, $v0  # $s1 = columns
+    sw $v0, col_count
 
-    # Get value of a
-    li $v0, 4
-    la $a0, prompt_a
-    syscall
-    li $v0, 5
-    syscall
-    move $s2, $v0  # $s2 = a
+    # Load row_count and col_count
+    lw $s0, row_count
+    lw $s1, col_count
 
-    # Get value of b
-    li $v0, 4
-    la $a0, prompt_b
-    syscall
-    li $v0, 5
-    syscall
-    move $s3, $v0  # $s3 = b
+    # Calculate space required for matrix (rows * cols * 4 bytes per int)
+    mul $t0, $s0, $s1
+    sll $t0, $t0, 2  # Multiply by 4 (2^2)
 
-    # Print original matrix message
-    li $v0, 4
-    la $a0, original_matrix_msg
+    # Allocate space for matrix
+    li $v0, 9
+    move $a0, $t0
     syscall
+    sw $v0, mat_base
 
-    # Initialize loop variables
-    li $t0, 0  # i = 0
-    li $t1, 0  # j = 0
+    lw $s2, mat_base # Load base address of matrix
+
+    # Fill matrix with values
+    li $t0, 0 # Row index
 
 outer_loop:
-    beq $t0, $s0, end_outer_loop  # if i == rows, end outer loop
+    beq $t0, $s0, end_outer_loop
+
+    li $t1, 0 # Column index
 
 inner_loop:
-    beq $t1, $s1, end_inner_loop  # if j == columns, end inner loop
+    beq $t1, $s1, end_inner_loop
 
-    # Calculate (-1)^(i+j)
-    add $t2, $t0, $t1  # $t2 = i + j
-    li $t3, 1          # $t3 will hold (-1)^(i+j)
-    andi $t4, $t2, 1   # $t4 = (i+j) % 2
-    beqz $t4, skip_negate
-    li $t3, -1
-skip_negate:
-
-    # Calculate a^i
-    li $t4, 1          # $t4 will hold a^i
-    move $t5, $t0      # $t5 = i (counter)
-a_power_loop:
-    beqz $t5, end_a_power
-    mul $t4, $t4, $s2  # $t4 *= a
-    addi $t5, $t5, -1
-    j a_power_loop
-end_a_power:
-
-    # Calculate b^j
-    li $t5, 1          # $t5 will hold b^j
-    move $t6, $t1      # $t6 = j (counter)
-b_power_loop:
-    beqz $t6, end_b_power
-    mul $t5, $t5, $s3  # $t5 *= b
-    addi $t6, $t6, -1
-    j b_power_loop
-end_b_power:
-
-    # Calculate final value: (-1)^(i+j) * a^i * b^j
-    mul $t3, $t3, $t4  # $t3 *= a^i
-    mul $t3, $t3, $t5  # $t3 *= b^j
-
-    # Store value in matrix
-    mul $t4, $t0, $s1  # $t4 = i * columns
-    add $t4, $t4, $t1  # $t4 += j
-    sll $t4, $t4, 2    # $t4 *= 4 (word alignment)
-    sw $t3, matrix($t4)
-
-    # Print value
-    li $v0, 1
-    move $a0, $t3
+    # Read value from user
+    li $v0, 5
     syscall
 
-    li $v0, 4
-    la $a0, space
-    syscall
+    # Calculate address and store value
+    move $t5, $t0
+    mul $t5, $t5, $s1
+    add $t5, $t5, $t1
+    sll $t5, $t5, 2
+    add $t5, $t5, $s2
 
-    addi $t1, $t1, 1  # j++
+    sw $v0, 0($t5)
+
+    addi $t1, $t1, 1
     j inner_loop
 
 end_inner_loop:
-    li $v0, 4
-    la $a0, newline
-    syscall
-
-    li $t1, 0  # Reset j to 0
-    addi $t0, $t0, 1  # i++
+    addi $t0, $t0, 1
     j outer_loop
 
 end_outer_loop:
-    # Compute and print transpose
-    jal compute_transpose
-
-    # Exit program
-    li $v0, 10
-    syscall
-
-compute_transpose:
-    # Print transpose matrix message
+    # Print original matrix
     li $v0, 4
-    la $a0, transpose_matrix_msg
+    la $a0, original_prompt
     syscall
 
-    # Initialize loop variables
-    li $t0, 0  # i = 0 (for columns of original matrix)
+    j print_matrix
 
-transpose_outer_loop:
-    beq $t0, $s1, end_transpose_outer_loop  # if i == columns, end outer loop
+print_matrix:
+    li $t0, 0 # Row index
 
-    li $t1, 0  # j = 0 (for rows of original matrix)
+outer_loop_p:
+    beq $t0, $s0, end_outer_loop_p
 
-transpose_inner_loop:
-    beq $t1, $s0, end_transpose_inner_loop  # if j == rows, end inner loop
+    li $t1, 0 # Column index
 
-    # Calculate index in original matrix
-    mul $t2, $t1, $s1  # $t2 = j * columns
-    add $t2, $t2, $t0  # $t2 += i
-    sll $t2, $t2, 2    # $t2 *= 4 (word alignment)
+inner_loop_p:
+    beq $t1, $s1, end_inner_loop_p
 
-    # Load value from original matrix
-    lw $t3, matrix($t2)
+    # Calculate address and load value
+    move $t5, $t0
+    mul $t5, $t5, $s1
+    add $t5, $t5, $t1
+    sll $t5, $t5, 2
+    add $t5, $t5, $s2
 
-    # Calculate index in transpose matrix
-    mul $t4, $t0, $s0  # $t4 = i * rows
-    add $t4, $t4, $t1  # $t4 += j
-    sll $t4, $t4, 2    # $t4 *= 4 (word alignment)
-
-    # Store value in transpose matrix
-    sw $t3, transpose($t4)
-
-    # Print value
     li $v0, 1
-    move $a0, $t3
+    lw $a0, 0($t5)
     syscall
 
     li $v0, 4
     la $a0, space
     syscall
 
-    addi $t1, $t1, 1  # j++
-    j transpose_inner_loop
+    addi $t1, $t1, 1
+    j inner_loop_p
 
-end_transpose_inner_loop:
+end_inner_loop_p:
     li $v0, 4
     la $a0, newline
     syscall
 
-    addi $t0, $t0, 1  # i++
-    j transpose_outer_loop
+    addi $t0, $t0, 1
+    j outer_loop_p
 
-end_transpose_outer_loop:
-    jr $ra  # Return from subroutine
+end_outer_loop_p:
+    # Get Transpose
+    j getTranspose
+
+getTranspose:
+    # Allocate space for result matrix (transpose)
+    mul $t0, $s0, $s1
+    sll $t0, $t0, 2
+    li $v0, 9
+    move $a0, $t0
+    syscall
+    sw $v0, res_base
+
+    lw $s3, res_base # Load base address of result matrix
+
+    li $t0, 0 # Row index for transpose
+
+loop1:
+    beq $t0, $s0, end_loop1
+
+    li $t1, 0 # Column index for transpose
+
+loop2:
+    beq $t1, $s1, end_loop2
+
+    # Address in original matrix
+    move $t5, $t0
+    mul $t5, $t5, $s1
+    add $t5, $t5, $t1
+    sll $t5, $t5, 2
+    add $t5, $t5, $s2
+
+    # Address in transposed matrix
+    move $t6, $t1
+    mul $t6, $t6, $s0
+    add $t6, $t6, $t0
+    sll $t6, $t6, 2
+    add $t6, $t6, $s3
+
+    lw $t3, 0($t5)
+    sw $t3, 0($t6)
+
+    addi $t1, $t1, 1
+    j loop2
+
+end_loop2:
+    addi $t0, $t0, 1
+    j loop1
+
+end_loop1:
+    # Print transpose matrix
+    li $v0, 4
+    la $a0, transpose_prompt
+    syscall
+
+    li $t0, 0 # Row index
+
+outer_loop_t:
+    beq $t0, $s1, end_outer_loop_t  # This is correct
+
+    li $t1, 0 # Column index
+
+inner_loop_t:
+    beq $t1, $s0, end_inner_loop_t  # Changed $s1 to $s0
+
+    # Calculate address and load value
+    move $t5, $t0
+    mul $t5, $t5, $s0  # Use $s0 (original row count) as it's now the column count of transpose
+    add $t5, $t5, $t1
+    sll $t5, $t5, 2
+    add $t5, $t5, $s3
+
+    li $v0, 1
+    lw $a0, 0($t5)
+    syscall
+
+    li $v0, 4
+    la $a0, space
+    syscall
+
+    addi $t1, $t1, 1
+    j inner_loop_t
+
+end_inner_loop_t:
+    li $v0, 4
+    la $a0, newline
+    syscall
+
+    addi $t0, $t0, 1
+    j outer_loop_t
+
+end_outer_loop_t:
+    # Exit program
+    li $v0, 10
+    syscall
