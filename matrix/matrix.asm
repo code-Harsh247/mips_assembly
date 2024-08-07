@@ -38,110 +38,36 @@ main:
     la $t1 col_count
     sw $v0 0($t1)
 
-    #storing total number of elements
-    lw $t1 row_count
-    lw $t2 col_count
-    mul $t0 $t1 $t2
-    la $t3 total
-    sw $t0 0($t3)
-    lw $t7 0($t3)
-    sll $t7 $t7 2
+    lw $s0 row_count
+    lw $s1 col_count
+    mul $s2 $s0 $s1 #total in s2
+    
     li $v0 9
-    move $a0 $t7
+    move $a0 $s2
     syscall
-    la $s0 matrix_base
-    sw $v0 0($s0)
+    sw $v0 matrix_base
 
-    # base address of matrix s0
-    # rowcount t1
-    # colcount t2
+    lw $s3 matrix_base # base address
+    move $t7 $s3 # current address 
 
-    # Load base address into $s0 for calculation
-    lw $s0  0($s0)
+    li $t0 0 
 
-    li $t3 0 #outer loop variable (row)
-outer_loop:
-    beq $t3 $t1 end_outer_loop
+fill_matrix:
+    beq $t0 $s2 print_original
 
-    li $t4 0 #inner loop varaible (col)
-    inner_loop:
-        beq $t4 $t2 end_inner_loop
-        
-        li $v0 5
-        syscall
+    div $t0 $s1
+    mflo $t1 # row
+    mfhi $t2 # col
 
-        #input value in $v0
-        # row 
-        # calculating address
-        # address = base_address + (row * col_count + col)*4
-
-        mul $t0 $t3 $t2
-        add $t0 $t0 $t4
-        sll $t0 $t0 2
-        add $t0 $t0 $s0
-
-        # address in $t0 
-
-        sw $v0 0($t0)
-
-        addi $t4 $t4 1
-        j inner_loop
-
-    end_inner_loop:
-        addi $t3 $t3 1
-        j outer_loop
-end_outer_loop:
-    #matrix set
-    j print_matrix
-
-print_matrix:
-    li $t3 0 #outer loop variable (row)
-outer_loop2:
-    beq $t3 $t1 end_outer_loop2
-
-    li $t4 0 #inner loop varaible (col)
-    inner_loop2:
-        beq $t4 $t2 end_inner_loop2
-        
-        #input value in $v0
-        # row 
-        # calculating address
-        # address = base_address + (row * col_count + col)*4
-
-        mul $t0 $t3 $t2
-        add $t0 $t0 $t4
-        sll $t0 $t0 2
-        add $t0 $t0 $s0
-
-        # address in $t0 
-
-        li $v0 1
-        lw $t6 0($t0)
-        move $a0 $t6
-        syscall
-
-        li $v0 4
-        la $a0 space
-        syscall
-
-        addi $t4 $t4 1
-        j inner_loop2
-
-    end_inner_loop2:
-        addi $t3 $t3 1
-
-        li $v0 4
-        la $a0 newline
-        syscall
-
-        j outer_loop2
-end_outer_loop2:
-    #matrix printed
-    li $v0 10
+    li $v0 5
     syscall
 
+    sw $v0 0($t7)
 
+    addi $t0 $t0 1
+    addi $t7 $t7 4
 
-        
+    j fill_matrix
 
+print_original:
     
